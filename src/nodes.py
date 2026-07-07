@@ -1,10 +1,27 @@
 # This file will contain the definition for various nodes in the LangGraph
 
-from src.llm_config import invoke_llm_json
-from src.utils import get_state_text, normalize_list
-from src.state import AgentState
+from src.llm_config import get_llm, COMMON_SYSTEM_INSTRUCTION
+from src.token_logger import log_token_usage
+from src.utils import get_state_text, normalize_list, compact_json, safe_json_parse
 
-def requirement_intake(spec_state: AgentState):
+llm = get_llm()
+
+def invoke_llm_json(node_name, task_instruction, input_payload):
+    prompt = f"""
+{COMMON_SYSTEM_INSTRUCTION}
+
+Task:
+{task_instruction}
+
+Input:
+{compact_json(input_payload)}
+"""
+
+    response = llm.invoke(prompt)
+    log_token_usage(node_name, response)
+    return safe_json_parse(response.content)
+
+def requirement_intake(spec_state: AgentState-> dict:
     """
     Non-LLM node.
     Keeps the user-provided requirement as raw_requirement.
@@ -17,7 +34,7 @@ def requirement_intake(spec_state: AgentState):
     }
 
 
-def requirement_extractor(spec_state: AgentState):
+def requirement_extractor(spec_state: AgentState-> dict:
     """
     LLM node.
     Extracts feature summary, functional requirements, and non-functional requirements.
@@ -55,7 +72,7 @@ Limits:
     }
 
 
-def role_identifier(spec_state: AgentState):
+def role_identifier(spec_state: AgentState-> dict:
     """
     LLM node.
     Identifies user roles from extracted requirements.
@@ -93,7 +110,7 @@ Limits:
     }
 
 
-def epic_generator(spec_state: AgentState):
+def epic_generator(spec_state: AgentState-> dict:
     """
     LLM node.
     Generates epics from functional requirements and roles.
@@ -132,7 +149,7 @@ Limits:
     }
 
 
-def user_story_generator(spec_state: AgentState):
+def user_story_generator(spec_state: AgentState-> dict:
     """
     LLM node.
     Generates user stories from epics, roles, and functional requirements.
@@ -172,7 +189,7 @@ Limits:
     }
 
 
-def acceptance_criteria_generator(spec_state: AgentState):
+def acceptance_criteria_generator(spec_state: AgentState-> dict:
     """
     LLM node.
     Generates acceptance criteria from user stories.
@@ -210,7 +227,7 @@ Limits:
     }
 
 
-def gap_detector(spec_state: AgentState):
+def gap_detector(spec_state: AgentState-> dict:
     """
     LLM node.
     Identifies open questions and missing requirement details.
@@ -248,7 +265,7 @@ Limits:
     }
 
 
-def risk_assumption_analyzer(spec_state: AgentState):
+def risk_assumption_analyzer(spec_state: AgentState-> dict:
     """
     LLM node.
     Identifies assumptions, risks, and dependencies.
@@ -292,7 +309,7 @@ Limits:
     }
 
 
-def test_scenario_generator(spec_state: AgentState):
+def test_scenario_generator(spec_state: AgentState-> dict:
     """
     LLM node.
     Generates test scenarios from user stories and acceptance criteria.
