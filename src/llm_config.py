@@ -1,7 +1,6 @@
 # This file will contain the config for llm invocation
 
 from dotenv import load_dotenv
-import os
 from langchain_openai import ChatOpenAI
 
 COMMON_SYSTEM_INSTRUCTION = """
