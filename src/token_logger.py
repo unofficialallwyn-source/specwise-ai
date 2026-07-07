@@ -1,6 +1,6 @@
 # This file will contain the code to display the tokens consumed by each node
 
-from Typing import Dict, Any
+from typing import Dict, Any, List
 
 TOKEN_USAGE_LOG = []
 
@@ -85,7 +85,7 @@ def print_token_report() -> None:
     print(f"Cached tokens       : {total_cached}")
 
 def clear_token_usage():
-  TOKEN_USAGE_LOG.clear()
+    TOKEN_USAGE_LOG.clear()
 
-def get_token_usage() -> []:
-  return TOKEN_USAGE_LOG
+def get_token_report() -> List[Dict[str, int]]:
+    return TOKEN_USAGE_LOG.copy()
