@@ -1,6 +1,20 @@
-# This file will contains the LangGraph definition
+# LangGraph definition for SpecWise AI
+
+from langgraph.graph import StateGraph, START, END
 
 from src.state import AgentState
+from src.nodes import (
+    requirement_intake,
+    requirement_extractor,
+    role_identifier,
+    epic_generator,
+    user_story_generator,
+    acceptance_criteria_generator,
+    gap_detector,
+    risk_assumption_analyzer,
+    test_scenario_generator,
+)
+from src.formatter import final_output_formatter
 
 specwise_graph = StateGraph(AgentState)
 
