@@ -27,6 +27,8 @@ SpecWise AI helps speed up that early analysis step by producing a structured fi
 - View token usage by LangGraph node
 - Download the final output as Markdown
 - Centralized runtime configuration
+- Non-secret settings externalized in `config/specwise.properties`
+- Secrets kept outside source control in `.env` or environment variables
 - Structured application logging
 - Friendly error handling for missing API keys, malformed AI responses, and LLM failures
 
@@ -41,7 +43,8 @@ SpecWise AI helps speed up that early analysis step by producing a structured fi
 | Agent workflow | LangGraph |
 | LLM integration | LangChain + langchain-openai |
 | Model provider | OpenAI |
-| Environment config | python-dotenv |
+| Secret config | `.env` / environment variables |
+| Non-secret config | `config/specwise.properties` |
 | State model | TypedDict |
 | Logging | Python logging |
 
@@ -95,6 +98,8 @@ specwise-ai/
 ├── app.py
 ├── requirements.txt
 ├── README.md
+├── config/
+│   └── specwise.properties
 └── src/
     ├── app_logging.py
     ├── config.py
@@ -128,7 +133,7 @@ specwise-ai/
 
 ### Error handling
 
-SpecWise AI now includes custom exception classes for predictable failures:
+SpecWise AI includes custom exception classes for predictable failures:
 
 - `ConfigurationError`
 - `LLMInvocationError`
@@ -150,26 +155,63 @@ Structured logs are written for important runtime events, including:
 
 ### Configuration
 
-Runtime values are centralized in `src/config.py` and can be overridden using environment variables.
+Runtime configuration is centralized in `src/config.py`.
 
-| Environment variable | Default |
-|---|---:|
-| `OPENAI_API_KEY` | Required |
-| `SPECWISE_MODEL` | `gpt-4o` |
-| `SPECWISE_TEMPERATURE` | `0.0` |
-| `SPECWISE_LLM_MAX_RETRIES` | `2` |
-| `SPECWISE_LLM_TIMEOUT_SECONDS` | `60` |
-| `SPECWISE_MAX_FUNCTIONAL_REQUIREMENTS` | `5` |
-| `SPECWISE_MAX_NON_FUNCTIONAL_REQUIREMENTS` | `5` |
-| `SPECWISE_MAX_ROLES` | `4` |
-| `SPECWISE_MAX_EPICS` | `3` |
-| `SPECWISE_MAX_USER_STORIES` | `5` |
-| `SPECWISE_MAX_ACCEPTANCE_CRITERIA` | `5` |
-| `SPECWISE_MAX_OPEN_QUESTIONS` | `5` |
-| `SPECWISE_MAX_ASSUMPTIONS` | `5` |
-| `SPECWISE_MAX_RISKS` | `5` |
-| `SPECWISE_MAX_DEPENDENCIES` | `5` |
-| `SPECWISE_MAX_TEST_SCENARIOS` | `6` |
+SpecWise AI now separates configuration into two categories:
+
+| Type | Location | Should be committed? |
+|---|---|---:|
+| Secrets | `.env` or environment variables | No |
+| Non-secret runtime settings | `config/specwise.properties` | Yes |
+
+Configuration is resolved using this priority:
+
+```text
+1. Environment variable / .env
+2. config/specwise.properties
+3. Safe default inside src/config.py
+```
+
+This means you can keep normal product settings in `config/specwise.properties`, but override them temporarily from `.env` or Codespaces secrets when needed.
+
+#### Secret configuration
+
+Create a `.env` file in the project root:
+
+```bash
+OPENAI_API_KEY=your_api_key_here
+```
+
+Do not commit `.env`.
+
+#### Non-secret configuration
+
+Edit `config/specwise.properties` for normal runtime settings:
+
+```properties
+SPECWISE_MODEL=gpt-4o
+SPECWISE_TEMPERATURE=0.0
+SPECWISE_LLM_MAX_RETRIES=2
+SPECWISE_LLM_TIMEOUT_SECONDS=60
+
+SPECWISE_MAX_FUNCTIONAL_REQUIREMENTS=5
+SPECWISE_MAX_NON_FUNCTIONAL_REQUIREMENTS=5
+SPECWISE_MAX_ROLES=4
+SPECWISE_MAX_EPICS=3
+SPECWISE_MAX_USER_STORIES=5
+SPECWISE_MAX_ACCEPTANCE_CRITERIA=5
+SPECWISE_MAX_OPEN_QUESTIONS=5
+SPECWISE_MAX_ASSUMPTIONS=5
+SPECWISE_MAX_RISKS=5
+SPECWISE_MAX_DEPENDENCIES=5
+SPECWISE_MAX_TEST_SCENARIOS=6
+```
+
+You can also point the app to a different properties file using:
+
+```bash
+SPECWISE_PROPERTIES_PATH=/path/to/specwise.properties
+```
 
 ---
 
@@ -212,7 +254,23 @@ Create a `.env` file in the project root:
 OPENAI_API_KEY=your_api_key_here
 ```
 
-### 5. Run the app
+### 5. Optional: adjust runtime settings
+
+Edit:
+
+```text
+config/specwise.properties
+```
+
+For example, to generate more user stories, update:
+
+```properties
+SPECWISE_MAX_USER_STORIES=8
+```
+
+Then restart the Streamlit app so the cached configuration reloads.
+
+### 6. Run the app
 
 ```bash
 python -m streamlit run app.py
@@ -293,6 +351,7 @@ This project demonstrates:
 - Token optimization
 - Streamlit productization
 - Runtime configuration management
+- Externalized properties configuration
 - Structured logging
 - Error handling
 - GitHub-based development workflow
