@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict
+from typing import Dict, Optional
 
 from dotenv import load_dotenv
 
@@ -38,7 +38,7 @@ def _get_float(name: str, default: float) -> float:
 class AppConfig:
     """Runtime configuration loaded from environment variables."""
 
-    openai_api_key: str | None
+    openai_api_key: Optional[str]
     model_name: str
     temperature: float
     llm_max_retries: int
