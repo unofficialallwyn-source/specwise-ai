@@ -1,8 +1,15 @@
 # Utility methods used by LangGraph node functions
 
 import json
+import logging
 import re
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+from src.app_logging import get_logger, log_event
+from src.exceptions import LLMResponseParseError
+
+logger = get_logger(__name__)
+
 
 def get_state_text(value: Any) -> str:
     """
@@ -36,12 +43,14 @@ def get_state_text(value: Any) -> str:
 
     return str(value)
 
+
 def compact_json(data: Dict[str, Any]) -> str:
     """
     Converts Python dictionary to compact JSON string.
     This reduces unnecessary spaces in the prompt.
     """
     return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+
 
 def safe_json_parse(raw_text: str) -> Dict[str, Any]:
     """
@@ -50,12 +59,15 @@ def safe_json_parse(raw_text: str) -> Dict[str, Any]:
     """
 
     if raw_text is None or raw_text.strip() == "":
-        print("JSON parse warning: Empty response received.")
-        return {}
+        log_event(logger, "json_parse_failed", level=logging.WARNING, reason="empty_response")
+        raise LLMResponseParseError(
+            "Empty response received from LLM.",
+            user_message="The AI returned an empty response. Please try again.",
+        )
 
     cleaned_text = raw_text.strip()
 
-    # Remove common markdown code fences if the model accidentally returns them
+    # Remove common markdown code fences if the model accidentally returns them.
     cleaned_text = cleaned_text.replace("```json", "").replace("```", "").strip()
 
     try:
@@ -63,7 +75,7 @@ def safe_json_parse(raw_text: str) -> Dict[str, Any]:
     except json.JSONDecodeError:
         pass
 
-    # Try to extract the first JSON object from the response
+    # Try to extract the first JSON object from the response.
     match = re.search(r"\{.*\}", cleaned_text, re.DOTALL)
 
     if match:
@@ -72,11 +84,22 @@ def safe_json_parse(raw_text: str) -> Dict[str, Any]:
         except json.JSONDecodeError:
             pass
 
-    print("JSON parse warning: Could not parse response.")
-    print("Raw response was:")
-    print(raw_text)
+    log_event(
+        logger,
+        "json_parse_failed",
+        level=logging.WARNING,
+        reason="invalid_json",
+        response_preview=raw_text[:500],
+    )
 
-    return {}
+    raise LLMResponseParseError(
+        "Could not parse LLM response as JSON.",
+        user_message=(
+            "The AI response could not be parsed correctly. Please try again. "
+            "If it continues, shorten the requirement or make it more specific."
+        ),
+    )
+
 
 def normalize_list(value: Any) -> List[str]:
     """
