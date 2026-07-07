@@ -1,7 +1,15 @@
 """Streamlit UI for SpecWise AI."""
 
+import logging
+from time import perf_counter
+
 import streamlit as st
 
+from src.app_logging import get_logger, log_event
+from src.exceptions import SpecWiseError
+from src.llm_config import validate_runtime_config
+
+logger = get_logger(__name__)
 
 st.set_page_config(
     page_title="SpecWise AI",
@@ -23,7 +31,11 @@ def run_specwise_graph(raw_requirement):
     from src.graph_builder import specwise_app
     from src.token_logger import clear_token_usage, get_token_report
 
+    validate_runtime_config()
     clear_token_usage()
+
+    start_time = perf_counter()
+    log_event(logger, "specwise_request_received", character_count=len(raw_requirement))
 
     result = specwise_app.invoke(
         {
@@ -32,6 +44,15 @@ def run_specwise_graph(raw_requirement):
     )
 
     token_report = get_token_report()
+    duration_ms = round((perf_counter() - start_time) * 1000, 2)
+
+    log_event(
+        logger,
+        "specwise_request_completed",
+        duration_ms=duration_ms,
+        node_count=len(token_report),
+        total_tokens=sum(item.get("total_tokens", 0) for item in token_report),
+    )
 
     return result, token_report
 
@@ -73,6 +94,7 @@ with col_clear:
 if clear_clicked:
     st.session_state.pop("specwise_result", None)
     st.session_state.pop("token_report", None)
+    log_event(logger, "ui_result_cleared")
 
 if generate_clicked:
     if raw_requirement.strip() == "":
@@ -84,9 +106,33 @@ if generate_clicked:
                 st.session_state["specwise_result"] = result
                 st.session_state["token_report"] = token_report
                 st.success("SpecWise AI output generated successfully.")
+            except SpecWiseError as error:
+                log_event(
+                    logger,
+                    "specwise_user_safe_error",
+                    level=logging.WARNING,
+                    error_type=type(error).__name__,
+                    error_message=str(error),
+                )
+                st.error(error.user_message)
+
+                with st.expander("Technical details"):
+                    st.code(str(error))
             except Exception as error:
-                st.error("Unable to generate output.")
-                st.exception(error)
+                log_event(
+                    logger,
+                    "specwise_unexpected_error",
+                    level=logging.ERROR,
+                    error_type=type(error).__name__,
+                    error_message=str(error),
+                )
+                st.error(
+                    "An unexpected error occurred while generating the document. "
+                    "Please try again. If it continues, check the terminal logs."
+                )
+
+                with st.expander("Technical details"):
+                    st.exception(error)
 
 result = st.session_state.get("specwise_result")
 token_report = st.session_state.get("token_report", [])
@@ -142,13 +188,13 @@ if result:
         if token_report:
             st.dataframe(token_report, use_container_width=True)
 
-            total_prompt_tokens = sum(item.get("prompt_tokens", 0) for item in token_report)
-            total_completion_tokens = sum(item.get("completion_tokens", 0) for item in token_report)
+            total_input_tokens = sum(item.get("input_tokens", 0) for item in token_report)
+            total_output_tokens = sum(item.get("output_tokens", 0) for item in token_report)
             total_tokens = sum(item.get("total_tokens", 0) for item in token_report)
 
             metric_col_1, metric_col_2, metric_col_3 = st.columns(3)
-            metric_col_1.metric("Prompt tokens", total_prompt_tokens)
-            metric_col_2.metric("Completion tokens", total_completion_tokens)
+            metric_col_1.metric("Input tokens", total_input_tokens)
+            metric_col_2.metric("Output tokens", total_output_tokens)
             metric_col_3.metric("Total tokens", total_tokens)
         else:
             st.info("No token usage data available yet.")
