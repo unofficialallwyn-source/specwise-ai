@@ -2,7 +2,16 @@
 
 from typing import List, Dict, Any
 
-def validate_specwise_result(specwise_result, sample_input_state, forbidden_terms):
+def validate_specwise_result(
+    specwise_result: Dict[str, Any],
+    sample_input_state: Dict[str, Any],
+    forbidden_terms: List[str]
+) -> Dict[str, Any]:
+  fields_valid = True
+  raw_requirement_valid = True
+  sections_valid = True
+  content_valid = True
+
   expected_fields = [
       "raw_requirement",
       "feature_summary",
@@ -27,17 +36,20 @@ def validate_specwise_result(specwise_result, sample_input_state, forbidden_term
           missing_fields.append(field)
 
   if len(missing_fields) == 0:
+      fields_valid = True
       print("All expected fields are present.")
   else:
+      fields_valid = False
       print("Missing fields:")
       print(missing_fields)
 
 
   input_requirement = sample_input_state["raw_requirement"]
 
-  if get_state_text(specwise_result.get("raw_requirement", "")) == input_requirement:
+  if specwise_result.get("raw_requirement", "") == input_requirement:
       print("raw_requirement matches the input requirement.")
   else:
+      raw_requirement_valid = False
       print("raw_requirement does not match the input requirement.")
 
 
@@ -64,6 +76,7 @@ def validate_specwise_result(specwise_result, sample_input_state, forbidden_term
   if len(missing_sections) == 0:
       print("Final output validation passed.")
   else:
+      sections_valid = False
       print("Final output validation failed. Missing sections:")
       print(missing_sections)
 
@@ -78,5 +91,16 @@ def validate_specwise_result(specwise_result, sample_input_state, forbidden_term
   if len(found_forbidden_terms) == 0:
       print("Content validation passed. No unrelated features found.")
   else:
+      content_valid = False
       print("Content validation warning. Found unrelated terms:")
       print(found_forbidden_terms)
+  
+  return {
+    "fields_valid": fields_valid,
+    "missing_fields": missing_fields,
+    "raw_requirement_valid": raw_requirement_valid,
+    "sections_valid": sections_valid,
+    "missing_sections": missing_sections,
+    "content_valid": content_valid,
+    "found_forbidden_terms": found_forbidden_terms
+}
