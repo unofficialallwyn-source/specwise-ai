@@ -1,10 +1,12 @@
 """Custom exceptions for SpecWise AI."""
 
+from typing import Optional
+
 
 class SpecWiseError(Exception):
     """Base exception with a safe message that can be shown in the UI."""
 
-    def __init__(self, message: str, user_message: str | None = None):
+    def __init__(self, message: str, user_message: Optional[str] = None):
         super().__init__(message)
         self.user_message = user_message or message
 
