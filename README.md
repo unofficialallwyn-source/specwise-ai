@@ -31,6 +31,9 @@ SpecWise AI helps speed up that early analysis step by producing a structured fi
 - Secrets kept outside source control in `.env` or environment variables
 - Structured application logging
 - Friendly error handling for missing API keys, malformed AI responses, and LLM failures
+- Automated tests for deterministic non-LLM modules
+- Streamlit deployment configuration
+- GitHub Actions workflow for tests
 
 ---
 
@@ -45,6 +48,8 @@ SpecWise AI helps speed up that early analysis step by producing a structured fi
 | Model provider | OpenAI |
 | Secret config | `.env` / environment variables |
 | Non-secret config | `config/specwise.properties` |
+| Testing | pytest |
+| CI | GitHub Actions |
 | State model | TypedDict |
 | Logging | Python logging |
 
@@ -89,29 +94,49 @@ Test Scenario Generator
 Final Output Formatter
 ```
 
+See the detailed architecture notes in [`docs/architecture.md`](docs/architecture.md).
+
 ---
 
 ## Project structure
 
 ```text
 specwise-ai/
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+├── .streamlit/
+│   └── config.toml
 ├── app.py
-├── requirements.txt
-├── README.md
 ├── config/
 │   └── specwise.properties
-└── src/
-    ├── app_logging.py
-    ├── config.py
-    ├── exceptions.py
-    ├── formatter.py
-    ├── graph_builder.py
-    ├── llm_config.py
-    ├── nodes.py
-    ├── state.py
-    ├── token_logger.py
-    ├── utils.py
-    └── validation.py
+├── docs/
+│   ├── architecture.md
+│   ├── deployment.md
+│   ├── demo-script.md
+│   └── screenshots/
+│       └── placeholder.txt
+├── pytest.ini
+├── README.md
+├── requirements.txt
+├── src/
+│   ├── app_logging.py
+│   ├── config.py
+│   ├── exceptions.py
+│   ├── formatter.py
+│   ├── graph_builder.py
+│   ├── llm_config.py
+│   ├── nodes.py
+│   ├── state.py
+│   ├── token_logger.py
+│   ├── utils.py
+│   └── validation.py
+└── tests/
+    ├── test_config.py
+    ├── test_formatter.py
+    ├── test_token_logger.py
+    ├── test_utils.py
+    └── test_validation.py
 ```
 
 ---
@@ -157,7 +182,7 @@ Structured logs are written for important runtime events, including:
 
 Runtime configuration is centralized in `src/config.py`.
 
-SpecWise AI now separates configuration into two categories:
+SpecWise AI separates configuration into two categories:
 
 | Type | Location | Should be committed? |
 |---|---|---:|
@@ -171,8 +196,6 @@ Configuration is resolved using this priority:
 2. config/specwise.properties
 3. Safe default inside src/config.py
 ```
-
-This means you can keep normal product settings in `config/specwise.properties`, but override them temporarily from `.env` or Codespaces secrets when needed.
 
 #### Secret configuration
 
@@ -284,6 +307,70 @@ python -m streamlit run app.py --server.port 8501 --server.address 0.0.0.0
 
 ---
 
+## Testing
+
+Run the automated test suite:
+
+```bash
+pytest
+```
+
+The tests cover:
+
+- Configuration loading and override priority
+- JSON parsing and JSON parse failures
+- Final Markdown formatting
+- Output validation rules
+- Token usage extraction and logging
+
+The tests do not call the OpenAI API.
+
+GitHub Actions runs the test suite on pushes and pull requests to `main`.
+
+---
+
+## Deployment
+
+See [`docs/deployment.md`](docs/deployment.md) for the full deployment guide.
+
+Minimum deployment checklist:
+
+1. Push code to GitHub.
+2. Confirm GitHub Actions tests pass.
+3. Deploy `app.py` to Streamlit Community Cloud or another hosting platform.
+4. Configure the OpenAI API key as a deployment secret.
+5. Run a smoke test using one of the sample requirements.
+
+Streamlit theme and deployment defaults are configured in:
+
+```text
+.streamlit/config.toml
+```
+
+---
+
+## Demo and portfolio assets
+
+Use these files to prepare the project for GitHub, LinkedIn, or interviews:
+
+| File | Purpose |
+|---|---|
+| `docs/architecture.md` | Technical architecture explanation |
+| `docs/deployment.md` | Deployment and smoke-test instructions |
+| `docs/demo-script.md` | Demo walkthrough and interview explanation |
+| `docs/screenshots/placeholder.txt` | Screenshot checklist |
+
+Recommended screenshots:
+
+- Landing page with sidebar configuration
+- Requirement input with sample loaded
+- Final PO Document tab
+- User Stories / Acceptance Criteria tabs
+- Token Usage tab
+- Download tab
+
+---
+
 ## Example input
 
 ```text
@@ -354,6 +441,9 @@ This project demonstrates:
 - Externalized properties configuration
 - Structured logging
 - Error handling
+- Automated testing
+- CI workflow setup
+- Deployment readiness
 - GitHub-based development workflow
 
 SpecWise AI is designed as a practical AI Product Owner assistant, not just a simple chatbot demo.
