@@ -1,0 +1,19 @@
+Add product screenshots in this folder before publishing the repository portfolio page.
+
+Recommended screenshots:
+
+1. Landing page with sample buttons and sidebar configuration.
+2. Requirement input with a sample loaded.
+3. Final PO Document tab after generation.
+4. User Stories and Acceptance Criteria tabs.
+5. Token Usage tab.
+6. Download tab.
+
+Suggested names:
+
+- 01-landing-page.png
+- 02-requirement-input.png
+- 03-final-po-document.png
+- 04-user-stories.png
+- 05-token-usage.png
+- 06-download.png
