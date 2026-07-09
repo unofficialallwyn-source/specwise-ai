@@ -103,10 +103,15 @@ def render_configuration_summary() -> None:
     st.sidebar.subheader("Runtime configuration")
     st.sidebar.caption("Loaded from environment variables, `.env`, or `config/specwise.properties`.")
 
+    st.sidebar.metric("Provider", config.llm_provider)
     st.sidebar.metric("Model", config.model_name)
     st.sidebar.metric("Temperature", config.temperature)
     st.sidebar.metric("Max retries", config.llm_max_retries)
     st.sidebar.metric("Timeout", f"{config.llm_timeout_seconds}s")
+    st.sidebar.caption(f"API key env: `{config.llm_api_key_env}`")
+
+    if config.llm_base_url:
+        st.sidebar.caption(f"Base URL: `{config.llm_base_url}`")
 
     with st.sidebar.expander("Output limits"):
         st.write(f"Functional requirements: {config.max_functional_requirements}")
