@@ -65,6 +65,11 @@ def _get_value(name: str, default: str) -> str:
     return default
 
 
+def _get_optional_value(name: str, default: str = "") -> Optional[str]:
+    value = _get_value(name, default).strip()
+    return value or None
+
+
 def _get_int(name: str, default: int) -> int:
     value = _get_value(name, str(default))
 
@@ -88,6 +93,9 @@ class AppConfig:
     """Runtime configuration loaded from environment variables and properties file."""
 
     openai_api_key: Optional[str]
+    llm_provider: str
+    llm_api_key_env: str
+    llm_base_url: Optional[str]
     model_name: str
     temperature: float
     llm_max_retries: int
@@ -103,6 +111,11 @@ class AppConfig:
     max_risks: int
     max_dependencies: int
     max_test_scenarios: int
+
+    @property
+    def llm_api_key(self) -> Optional[str]:
+        """Read the configured provider API key from the configured environment variable."""
+        return os.getenv(self.llm_api_key_env)
 
     @property
     def output_limits(self) -> Dict[str, int]:
@@ -125,8 +138,13 @@ class AppConfig:
 @lru_cache(maxsize=1)
 def get_config() -> AppConfig:
     """Load configuration once per application process."""
+    llm_api_key_env = _get_value("SPECWISE_LLM_API_KEY_ENV", "OPENAI_API_KEY")
+
     return AppConfig(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
+        llm_provider=_get_value("SPECWISE_LLM_PROVIDER", "openai").lower(),
+        llm_api_key_env=llm_api_key_env,
+        llm_base_url=_get_optional_value("SPECWISE_LLM_BASE_URL"),
         model_name=_get_value("SPECWISE_MODEL", "gpt-4o"),
         temperature=_get_float("SPECWISE_TEMPERATURE", 0.0),
         llm_max_retries=_get_int("SPECWISE_LLM_MAX_RETRIES", 2),
