@@ -6,6 +6,17 @@ This guide explains how to prepare and deploy SpecWise AI.
 
 For the MVP, Streamlit Community Cloud is the simplest deployment target because the application is already built with Streamlit.
 
+## Deployment model
+
+SpecWise AI is designed as a bring-your-own-key app.
+
+This means:
+
+- The repository does not include any LLM provider key.
+- Each user or deployer provides their own key.
+- Non-secret runtime settings are stored in `config/specwise.properties`.
+- Secrets are stored in `.env`, Codespaces secrets, or deployment platform secrets.
+
 ## Pre-deployment checklist
 
 Before deploying, verify these items:
@@ -15,8 +26,9 @@ Before deploying, verify these items:
 - `pytest` passes.
 - The repository contains `.streamlit/config.toml`.
 - The repository contains `config/specwise.properties` for non-secret runtime settings.
+- The repository contains `.env.example` but not a real `.env` file.
 - Secret values are not committed to GitHub.
-- The deployment platform has the OpenAI API key configured as a secret.
+- The deployment platform has the configured LLM provider key added as a secret.
 
 ## Local verification
 
@@ -50,8 +62,16 @@ python -m streamlit run app.py --server.port 8501 --server.address 0.0.0.0
 app.py
 ```
 
-6. Add the OpenAI API key in the platform's secret settings.
+6. Add the configured provider key in the platform's secret settings.
 7. Deploy the app.
+
+For the default OpenAI setup, add this in Streamlit secrets:
+
+```toml
+OPENAI_API_KEY = "your_provider_key_here"
+```
+
+If you changed `SPECWISE_LLM_API_KEY_ENV`, add a secret with that exact name instead.
 
 ## Runtime configuration
 
@@ -61,15 +81,29 @@ Non-secret settings are stored in:
 config/specwise.properties
 ```
 
-Example settings:
+Example default settings:
 
 ```properties
+SPECWISE_LLM_PROVIDER=openai
+SPECWISE_LLM_API_KEY_ENV=OPENAI_API_KEY
+SPECWISE_LLM_BASE_URL=
 SPECWISE_MODEL=gpt-4o
 SPECWISE_TEMPERATURE=0.0
 SPECWISE_MAX_USER_STORIES=5
 ```
 
-Secret settings must be configured in the deployment platform, not in source control.
+For OpenAI-compatible gateways, use:
+
+```properties
+SPECWISE_LLM_PROVIDER=openai_compatible
+SPECWISE_LLM_API_KEY_ENV=CUSTOM_LLM_KEY
+SPECWISE_LLM_BASE_URL=https://your-provider.example.com/v1
+SPECWISE_MODEL=your-model-name
+```
+
+Then configure `CUSTOM_LLM_KEY` in your `.env` file or deployment secrets.
+
+See `docs/llm-configuration.md` for full provider configuration details.
 
 ## Smoke test after deployment
 
@@ -87,7 +121,20 @@ After deployment, test the following:
 
 ### App shows missing API key
 
-Check that the deployment platform secret is configured correctly and that the app has been restarted after adding the secret.
+Check that the secret name matches `SPECWISE_LLM_API_KEY_ENV`. For the default configuration, the secret name is `OPENAI_API_KEY`.
+
+### App says provider is unsupported
+
+Use one of the supported provider values:
+
+```text
+openai
+openai_compatible
+```
+
+### App says base URL is missing
+
+`SPECWISE_LLM_BASE_URL` is required when `SPECWISE_LLM_PROVIDER=openai_compatible`.
 
 ### App fails during generation
 
