@@ -14,6 +14,9 @@ Streamlit UI (`app.py`)
 Runtime Config + Validation
   |
   v
+Configured LLM Provider
+  |
+  v
 Compiled LangGraph Workflow (`src/graph_builder.py`)
   |
   v
@@ -30,17 +33,18 @@ PO-ready Markdown Output
 
 | Component | Responsibility |
 |---|---|
-| `app.py` | Streamlit UI, user input, status messages, tabs, download, friendly error handling |
-| `src/config.py` | Loads environment variables, `.env`, properties file values, and defaults |
-| `config/specwise.properties` | Non-secret runtime settings such as model, retry count, and output limits |
-| `src/llm_config.py` | Validates runtime configuration and creates the ChatOpenAI client |
+| `app.py` | Streamlit UI, user input, status messages, tabs, download, runtime config summary, friendly error handling |
+| `src/config.py` | Loads environment variables, `.env`, properties file values, defaults, and provider settings |
+| `config/specwise.properties` | Non-secret runtime settings such as provider, model, retry count, base URL, and output limits |
+| `.env.example` | Example bring-your-own-key setup for local users |
+| `src/llm_config.py` | Validates provider configuration and creates the configured chat model client |
 | `src/graph_builder.py` | Defines the LangGraph node sequence and compiles the app |
 | `src/nodes.py` | Contains the LLM and non-LLM node functions |
 | `src/utils.py` | JSON parsing, compact JSON serialization, list normalization, state text extraction |
 | `src/token_logger.py` | Captures token usage from each LLM node |
 | `src/formatter.py` | Converts final graph state into Markdown output |
 | `src/validation.py` | Validates generated output structure and content constraints |
-| `tests/` | Automated tests for non-LLM logic |
+| `tests/` | Automated tests for non-LLM logic and runtime configuration validation |
 
 ## LangGraph flow
 
@@ -96,6 +100,9 @@ safe defaults in src/config.py
 AppConfig object
         |
         v
+LLM provider validation
+        |
+        v
 LLM setup + node prompt limits
 ```
 
@@ -104,6 +111,26 @@ Priority order:
 1. Environment variable or `.env`
 2. `config/specwise.properties`
 3. Safe default inside `src/config.py`
+
+## LLM provider model
+
+SpecWise AI is a bring-your-own-key app. The source code can be cloned and run by users with their own provider key.
+
+Supported provider values:
+
+| Provider | Description |
+|---|---|
+| `openai` | Default OpenAI provider |
+| `openai_compatible` | Any OpenAI-compatible chat gateway with a custom base URL |
+
+Important configuration properties:
+
+| Property | Purpose |
+|---|---|
+| `SPECWISE_LLM_PROVIDER` | Selects the provider mode |
+| `SPECWISE_LLM_API_KEY_ENV` | Name of the environment variable containing the provider key |
+| `SPECWISE_LLM_BASE_URL` | Base URL for OpenAI-compatible providers |
+| `SPECWISE_MODEL` | Model name passed to the provider |
 
 ## Error handling flow
 
@@ -155,12 +182,13 @@ This reduces unnecessary context, improves observability, and keeps token usage 
 The automated tests focus on deterministic non-LLM logic:
 
 - Configuration loading and override priority
+- LLM provider validation
 - JSON parsing and parse failure handling
 - Markdown formatting
 - Output validation
 - Token usage extraction
 
-The test suite deliberately avoids live LLM calls so tests can run safely in CI without requiring an API key.
+The test suite deliberately avoids live LLM calls so tests can run safely in CI without requiring a provider key.
 
 ## Deployment architecture
 
@@ -174,7 +202,7 @@ GitHub Actions pytest workflow
 Streamlit Community Cloud / hosting platform
   |
   v
-Runtime secret configured in deployment settings
+Runtime provider key configured in deployment settings
   |
   v
 Live SpecWise AI app
