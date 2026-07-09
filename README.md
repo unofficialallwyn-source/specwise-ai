@@ -26,11 +26,13 @@ SpecWise AI helps speed up that early analysis step by producing a structured fi
 - Generate test scenarios
 - View token usage by LangGraph node
 - Download the final output as Markdown
+- Bring-your-own-key LLM configuration
+- Configurable LLM provider with `openai` and `openai_compatible` modes
 - Centralized runtime configuration
 - Non-secret settings externalized in `config/specwise.properties`
 - Secrets kept outside source control in `.env` or environment variables
 - Structured application logging
-- Friendly error handling for missing API keys, malformed AI responses, and LLM failures
+- Friendly error handling for missing keys, malformed AI responses, and LLM failures
 - Automated tests for deterministic non-LLM modules
 - Streamlit deployment configuration
 - GitHub Actions workflow for tests
@@ -45,8 +47,9 @@ SpecWise AI helps speed up that early analysis step by producing a structured fi
 | UI | Streamlit |
 | Agent workflow | LangGraph |
 | LLM integration | LangChain + langchain-openai |
-| Model provider | OpenAI |
-| Secret config | `.env` / environment variables |
+| Default model provider | OpenAI |
+| Compatible provider mode | OpenAI-compatible chat endpoints |
+| Secret config | `.env` / environment variables / deployment secrets |
 | Non-secret config | `config/specwise.properties` |
 | Testing | pytest |
 | CI | GitHub Actions |
@@ -59,6 +62,9 @@ SpecWise AI helps speed up that early analysis step by producing a structured fi
 
 ```text
 Streamlit UI
+    |
+    v
+Runtime Config + Provider Validation
     |
     v
 Compiled LangGraph app
@@ -102,6 +108,7 @@ See the detailed architecture notes in [`docs/architecture.md`](docs/architectur
 
 ```text
 specwise-ai/
+├── .env.example
 ├── .github/
 │   └── workflows/
 │       └── tests.yml
@@ -114,6 +121,7 @@ specwise-ai/
 │   ├── architecture.md
 │   ├── deployment.md
 │   ├── demo-script.md
+│   ├── llm-configuration.md
 │   └── screenshots/
 │       └── placeholder.txt
 ├── pytest.ini
@@ -134,10 +142,50 @@ specwise-ai/
 └── tests/
     ├── test_config.py
     ├── test_formatter.py
+    ├── test_llm_config.py
     ├── test_token_logger.py
     ├── test_utils.py
     └── test_validation.py
 ```
+
+---
+
+## Bring your own LLM key
+
+SpecWise AI does not include any provider key. To run the app, clone the repository and provide your own key in `.env`, Codespaces secrets, or your deployment platform's secret settings.
+
+Supported provider modes:
+
+| Provider value | Purpose |
+|---|---|
+| `openai` | Default OpenAI provider |
+| `openai_compatible` | Any OpenAI-compatible chat endpoint with a custom base URL |
+
+Default configuration in `config/specwise.properties`:
+
+```properties
+SPECWISE_LLM_PROVIDER=openai
+SPECWISE_LLM_API_KEY_ENV=OPENAI_API_KEY
+SPECWISE_LLM_BASE_URL=
+SPECWISE_MODEL=gpt-4o
+```
+
+For OpenAI-compatible providers:
+
+```properties
+SPECWISE_LLM_PROVIDER=openai_compatible
+SPECWISE_LLM_API_KEY_ENV=CUSTOM_LLM_KEY
+SPECWISE_LLM_BASE_URL=https://your-provider.example.com/v1
+SPECWISE_MODEL=your-model-name
+```
+
+Then configure the matching secret in `.env` or deployment secrets:
+
+```bash
+CUSTOM_LLM_KEY=your_provider_key_here
+```
+
+See [`docs/llm-configuration.md`](docs/llm-configuration.md) for full configuration details.
 
 ---
 
@@ -186,7 +234,7 @@ SpecWise AI separates configuration into two categories:
 
 | Type | Location | Should be committed? |
 |---|---|---:|
-| Secrets | `.env` or environment variables | No |
+| Secrets | `.env`, environment variables, or deployment secrets | No |
 | Non-secret runtime settings | `config/specwise.properties` | Yes |
 
 Configuration is resolved using this priority:
@@ -195,45 +243,6 @@ Configuration is resolved using this priority:
 1. Environment variable / .env
 2. config/specwise.properties
 3. Safe default inside src/config.py
-```
-
-#### Secret configuration
-
-Create a `.env` file in the project root:
-
-```bash
-OPENAI_API_KEY=your_api_key_here
-```
-
-Do not commit `.env`.
-
-#### Non-secret configuration
-
-Edit `config/specwise.properties` for normal runtime settings:
-
-```properties
-SPECWISE_MODEL=gpt-4o
-SPECWISE_TEMPERATURE=0.0
-SPECWISE_LLM_MAX_RETRIES=2
-SPECWISE_LLM_TIMEOUT_SECONDS=60
-
-SPECWISE_MAX_FUNCTIONAL_REQUIREMENTS=5
-SPECWISE_MAX_NON_FUNCTIONAL_REQUIREMENTS=5
-SPECWISE_MAX_ROLES=4
-SPECWISE_MAX_EPICS=3
-SPECWISE_MAX_USER_STORIES=5
-SPECWISE_MAX_ACCEPTANCE_CRITERIA=5
-SPECWISE_MAX_OPEN_QUESTIONS=5
-SPECWISE_MAX_ASSUMPTIONS=5
-SPECWISE_MAX_RISKS=5
-SPECWISE_MAX_DEPENDENCIES=5
-SPECWISE_MAX_TEST_SCENARIOS=6
-```
-
-You can also point the app to a different properties file using:
-
-```bash
-SPECWISE_PROPERTIES_PATH=/path/to/specwise.properties
 ```
 
 ---
@@ -269,13 +278,21 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-### 4. Add your OpenAI API key
+### 4. Configure your provider key
 
-Create a `.env` file in the project root:
+Create a `.env` file from the example:
 
 ```bash
-OPENAI_API_KEY=your_api_key_here
+cp .env.example .env
 ```
+
+Then add your own provider key:
+
+```bash
+OPENAI_API_KEY=your_provider_key_here
+```
+
+Do not commit `.env`.
 
 ### 5. Optional: adjust runtime settings
 
@@ -318,12 +335,13 @@ pytest
 The tests cover:
 
 - Configuration loading and override priority
+- LLM provider validation
 - JSON parsing and JSON parse failures
 - Final Markdown formatting
 - Output validation rules
 - Token usage extraction and logging
 
-The tests do not call the OpenAI API.
+The tests do not call any live LLM provider.
 
 GitHub Actions runs the test suite on pushes and pull requests to `main`.
 
@@ -338,7 +356,7 @@ Minimum deployment checklist:
 1. Push code to GitHub.
 2. Confirm GitHub Actions tests pass.
 3. Deploy `app.py` to Streamlit Community Cloud or another hosting platform.
-4. Configure the OpenAI API key as a deployment secret.
+4. Configure the provider key as a deployment secret.
 5. Run a smoke test using one of the sample requirements.
 
 Streamlit theme and deployment defaults are configured in:
@@ -357,17 +375,15 @@ Use these files to prepare the project for GitHub, LinkedIn, or interviews:
 |---|---|
 | `docs/architecture.md` | Technical architecture explanation |
 | `docs/deployment.md` | Deployment and smoke-test instructions |
+| `docs/llm-configuration.md` | Bring-your-own-key provider configuration |
 | `docs/demo-script.md` | Demo walkthrough and interview explanation |
 | `docs/screenshots/placeholder.txt` | Screenshot checklist |
 
-Recommended screenshots:
+Recommended public positioning:
 
-- Landing page with sidebar configuration
-- Requirement input with sample loaded
-- Final PO Document tab
-- User Stories / Acceptance Criteria tabs
-- Token Usage tab
-- Download tab
+```text
+Live demo access is restricted to control provider usage. The source code is available for self-hosting with your own LLM key.
+```
 
 ---
 
@@ -425,6 +441,7 @@ Potential future enhancements:
 - Human review checkpoints
 - FastAPI backend
 - Authentication for hosted deployments
+- Additional native provider integrations
 
 ---
 
@@ -435,6 +452,8 @@ This project demonstrates:
 - AI product thinking
 - LangGraph workflow design
 - LLM response parsing
+- Configurable provider architecture
+- Bring-your-own-key deployment model
 - Token optimization
 - Streamlit productization
 - Runtime configuration management
