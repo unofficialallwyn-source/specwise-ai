@@ -6,7 +6,7 @@ Use this script for a GitHub README video, LinkedIn demo, or interview walkthrou
 
 SpecWise AI is a Product Owner assistant that converts rough client requirements into structured delivery-ready artifacts such as feature summaries, functional requirements, epics, user stories, acceptance criteria, open questions, risks, dependencies, and test scenarios.
 
-It is built with Streamlit, LangGraph, LangChain, and OpenAI, with production-style configuration, logging, error handling, token tracking, and tests.
+It is built with Streamlit, LangGraph, LangChain, and OpenAI-compatible LLM configuration, with production-style configuration, logging, error handling, token tracking, tests, and a bring-your-own-key deployment model.
 
 ## 2-minute demo flow
 
@@ -20,6 +20,7 @@ Show:
 
 - Streamlit landing page
 - Sidebar runtime configuration
+- Configured LLM provider and model
 - Sample requirement buttons
 
 ### 2. Load a sample requirement
@@ -95,6 +96,10 @@ Say:
 
 > The application uses Streamlit for the UI and LangGraph for orchestration. Each node is responsible for a specific Product Owner task. The graph state is gradually enriched and finally formatted into a Markdown document.
 
+### LLM configuration
+
+> SpecWise AI is designed as a bring-your-own-key app. The live demo can remain restricted to control provider usage, while the source code can be cloned and self-hosted with the user's own provider key. The app supports a default OpenAI mode and an OpenAI-compatible provider mode using configurable provider, key environment variable, base URL, and model settings.
+
 ### Configuration
 
 > Secrets are kept outside source control. Non-secret runtime properties are stored in `config/specwise.properties`. The application resolves configuration using environment variables first, then the properties file, then safe defaults.
@@ -109,8 +114,14 @@ Say:
 
 ### Testing
 
-> The test suite focuses on deterministic logic such as config loading, JSON parsing, formatting, validation, and token logging. It avoids live LLM calls so CI can run without an API key.
+> The test suite focuses on deterministic logic such as config loading, LLM provider validation, JSON parsing, formatting, validation, and token logging. It avoids live LLM calls so CI can run without a provider key.
 
 ## Demo closing statement
 
-> This project demonstrates practical AI engineering beyond a simple chatbot. It includes workflow orchestration, structured output generation, token observability, runtime configuration, error handling, automated tests, and deployment readiness.
+> This project demonstrates practical AI engineering beyond a simple chatbot. It includes workflow orchestration, structured output generation, token observability, configurable provider architecture, runtime configuration, error handling, automated tests, and deployment readiness.
+
+## Public sharing statement
+
+Use this when sharing the project publicly:
+
+> Live demo access is restricted to control provider usage. The source code is available for self-hosting with your own LLM key.
